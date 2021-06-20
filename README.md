@@ -47,7 +47,6 @@
 #### note目录
 
 ```
-yanglei@192 note % tree ./ -L 1
 ./
 ├── image
 └── 第1课 数组、链表、栈、队列.md
