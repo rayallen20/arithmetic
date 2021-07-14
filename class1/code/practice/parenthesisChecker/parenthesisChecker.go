@@ -20,7 +20,13 @@ func ParenthesisChecker(symbols string) bool {
 
 		// 右括号 栈顶比对
 		if strings.ContainsRune(rightSymbols, symbolRunes[i]) {
-			top, _ := stack.Peek()
+			top, err := stack.Peek()
+			// 栈为空 不匹配
+			if err != nil {
+				return false
+			}
+
+			// 类型比对
 			if matches(top.(string), string(symbolRunes[i])) {
 				stack.Pop()
 			} else {
