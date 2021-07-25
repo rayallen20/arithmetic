@@ -5,10 +5,11 @@ import (
 )
 
 var operatorPriority map[string]int = map[string]int{
-	"+": 0,
-	"-": 0,
-	"*": 1,
-	"/": 1,
+	"(": 0,
+	"+": 1,
+	"-": 1,
+	"*": 2,
+	"/": 2,
 }
 
 func InfixToPostfix(infix string) (postfix string) {
@@ -51,7 +52,7 @@ func InfixToPostfix(infix string) (postfix string) {
 	return
 }
 
-func InfixToPostfixWithParentheses(infix string) (postfix string) {
+func InfixToPostfixWithParentheses2(infix string) (postfix string) {
 	var operatorStack stack2.Stack = stack2.Stack{}
 	for i := 0; i < len(infix); i++ {
 		// 左括号 入栈
@@ -110,4 +111,64 @@ func InfixToPostfixWithParentheses(infix string) (postfix string) {
 		postfix += string(topOperator.(uint8))
 	}
 	return
+}
+
+func InfixToPostfixWithParentheses(infix string) (postfix string) {
+	var operatorStack stack2.Stack = stack2.Stack{}
+
+	for i := 0; i < len(infix); i++ {
+		token := string(infix[i])
+
+		_, ok := operatorPriority[token]
+
+		// 操作数 直接放入结果
+		if !ok && token != ")" {
+			postfix += token
+			continue
+		}
+
+		// ) 持续出栈直到遇见(为止
+		if token == ")" {
+			for {
+				top, _ := operatorStack.Pop()
+				if top.(string) == "(" {
+					break
+				}
+
+				postfix += top.(string)
+			}
+			continue
+		}
+
+		// 操作符
+		for {
+			// 栈为空 或 操作符为( 将当前操作符压入栈顶即可
+			if operatorStack.IsEmpty() || token == "(" {
+				operatorStack.Push(token)
+				break
+			}
+
+			top, _ := operatorStack.Peek()
+
+			// 若栈顶操作符优先级 >= 当前操作符优先级 则持续弹出 直到栈为空 或 栈顶操作符优先级 < 当前操作符优先级为止
+			if operatorPriority[top.(string)] >= operatorPriority[token] {
+				topOperator, _ := operatorStack.Pop()
+				postfix += topOperator.(string)
+			}
+
+			// 若栈顶操作符优先级 < 当前操作符优先级 则将当前操作符压入栈内即可
+			if operatorPriority[top.(string)] < operatorPriority[token] {
+				operatorStack.Push(token)
+				break
+			}
+		}
+	}
+
+	// 遍历结束 将栈内剩余操作符放入结果
+	for !operatorStack.IsEmpty() {
+		topOperator, _ := operatorStack.Pop()
+		postfix += topOperator.(string)
+	}
+
+	return postfix
 }
