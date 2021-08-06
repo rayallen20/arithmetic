@@ -85,6 +85,8 @@ func (s *SizeableArray) Capacity() int {
 
 定长数组的长度不可改变,这个特性使得在特定的场景中,这样的集合不太适用.因此需要一种更为通用的"动态数组".与定长数组相比,变长数组的长度是不固定的,可以追加元素,在追加时,可能使变长数组的容量增大.
 
+// TODO:我的设计 为什么用25%作为trigger 50%作为reduceFactor
+
 #### 1.2.2 变长数组的实现
 
 在实现变长数组时,就会有以下问题要解决:
@@ -282,6 +284,225 @@ func (r ResizableArray) Check()  {
 	fmt.Printf("resizableArray Len:%d resizableArray Cap:%d\n", r.len, r.cap)
 }
 ```
+
+### 1.3 相关习题
+
+#### 1.3.1 合并两个有序数组
+
+[合并两个有序数组](https://leetcode-cn.com/problems/merge-sorted-array/)
+
+##### a. 题目要求
+
+给你2个有序整数数组`nums1`和`nums2`,请你将`nums2`合并到`nums1`中,使`nums1`成为一个有序数组.
+
+初始化`nums1`和`nums2`的元素数量分别为`m`和`n`.你可以假设`nums1`的空间大小等于`m + n`,这样它就有足够的空间保存来自`nums2`的元素.
+
+示例1:
+
+```
+
+输入: nums1 = [1, 2, 3, 0, 0, 0], m = 3, nums2 = [2, 5, 6], n = 3
+
+输出: [1, 2, 3, 4, 5, 6]
+
+```
+
+示例2:
+
+```
+
+输入: nums1 = [1], m = 1, nums2 = [], n = 0
+
+输出: [1]
+
+```
+
+提示:
+
+- nums1.length == m + n
+- nums2.length = n
+- 0 <= m, n <= 200
+- 1 <= m + n <= 200
+- -10^9 <= nums1[i], nums2[i] <= 10^9
+
+
+```go
+
+func merge(nums1 []int, m int, nums2 []int, n int)  {
+
+}
+
+```
+
+##### b. 审题
+
+抽象一点这道题用一句话形容:把`nums2`中的元素全部放入`nums1`中,并保持升序.
+
+那么对于`nums2`中的元素,就有2种可能性:
+
+1. 需要放到`nums1`的中间.即放入`nums1[0]`到`nums1[m]`这个区间内.这种元素需要满足条件:`nums1[0] <= nums2[n] <= nums1[m]`
+2. 需要放到`nums1`的结尾.即放入`nums1[m + 1]`到`nums1[len(nums1) - 1]`这个区间内.这种元素需要满足条件:`nums1[m] < nums2[n]`
+
+分析完了`nums2`,再回过头来看`nums1`.对于`nums1`来讲,参数`m`表示的是`nums1`中有效元素的数量.所谓有效元素,即`nums1`中需要参与排序的元素的个数.按照题意,`nums1.length == m + n`.说明`nums1`中的元素,实际上也有2种可能性:
+
+1. 需要参与排序的.即`nums1[0]`到`nums1[m]`这个区间内的元素
+2. 不需要参与排序的.`nums1[m + 1]`到`nums1[len(nums1) - 1]`这个区间内的元素.即这部分元素实际上起到了一个占位的作用.它们存在的意义是为了保证`nums1`有足够的长度容纳`nums2`的元素
+
+但想要实现这个需求,至少是需要把`nums1`的有效元素部分和`nums2`都扫一遍的
+
+##### c. 根据审题结果,寻找合适的数据结构
+
+这道题实际上考察的并不是对数据结构的应用,而是对算法的设计.很明显这道题要用双指针.问题在于怎么用.
+
+##### d. 实现思路
+
+本题实际上的含义是:对于`nums2`中的每一个元素,在`nums1`中找到一个能够保持升序的位置,并将nums2中的元素放到这个位置上.由于给定的2个数组都是已经按升序排好序的,所以我们按顺序,先处理`nums2`中 <= `nums1[m - 1]`的元素,再处理`nums2`中 > `nums1[m - 1]`的元素
+
+step1. 处理`nums2`中 <= `nums1[m - 1]`的元素
+
+- 对于每个`nums2`中的元素,在`nums1`中寻找第1个大于该元素值的索引
+	- 若找到,则把`nums1`中从该索引处开始,直到`m - 1`处为止的所有元素,向后挪动1个单位
+	- 用`nums2`中当前的元素替代`nums1`中当前指针指向的元素
+	- 对于`nums1`而言,此时有效元素增加了1个,所以表示有效元素个数的`m`要做`+1`的操作
+	- 对于`nums2`而言,因为后续可能出现 > `nums1[m - 1]`的元素,所以需要记录一个索引.该索引之前的所有元素,均已经被插入到`nums1`中,该索引及其之后的所有元素,均未放到`nums1`中
+
+step2. 处理`nums2`中 > `nums1[m - 1]`的元素
+
+- 由于之前记录了`nums1`中的有效元素个数,也记录了`nums2`中尚未处理的元素位置.所以这一步只需要将`nums2`中所有尚未处理的元素,按顺序放入`nums1`的有效元素后面即可.
+
+##### e. 实现
+
+```go
+package lc88_merge
+
+func Merge(nums1 []int, m int, nums2 []int, n int)  {
+	var residue int
+	
+	// nums2中需要插入到nums1中的元素
+	for i := 0; i < n; i++ {
+		for j := 0; j < m; j++ {
+			if nums1[j] > nums2[i] {
+				moveBack(nums1, j, m - 1)
+				nums1[j] = nums2[i]
+				residue++
+				m++
+				break
+			}
+		}
+	}
+
+	// nums2中还有没放到nums1中的元素
+	if residue < n {
+		for k := residue; k < n; k++ {
+			nums1[m] = nums2[k]
+			m++
+		}
+	}
+}
+
+func moveBack(nums []int, start, end int) {
+	for i := end + 1; i > start; i-- {
+		nums[i] = nums[i - 1]
+	}
+}
+```
+
+##### f. 改进
+
+可以改进的地方有2个点:
+
+1. 对于`nums1`来讲,不需要每一次都从0开始扫,因为给定的2个数组都是升序数组,所以应该从上一次发生插入的位置开始本次遍历
+2. 对于`nums2`来讲,不需要遍历到末尾.只需要遍历到第1个 > `nums[m]`的元素,就可以终止遍历了
+
+改进后的实现:
+
+```go
+package lc88_merge
+
+func Merge(nums1 []int, m int, nums2 []int, n int)  {
+	// 特例:nums1中无有效元素
+	if m == 0 {
+		for k, v := range nums2 {
+			nums1[k] = v
+		}
+		return
+	}
+
+	// nums2中剩余未操作的元素标记
+	var residueNums2 int
+
+	// nums1中上一次发生位移的元素标记
+	var lastMoveNums1 int
+
+	// 对于nums2 从上一次未操作的元素开始遍历 查找是否在nums1中有该元素合适的位置
+	for i := residueNums2; i < n; i++ {
+		for j := lastMoveNums1; j < m; j++ {
+			if nums1[j] > nums2[i] {
+				moveBack(nums1, j, m - 1)
+				nums1[j] = nums2[i]
+				lastMoveNums1 = j
+				m++
+				residueNums2++
+				break
+			}
+		}
+
+		// 若此时nums2的元素 比nums1中最大的元素值还要大 说明此时nums2中剩余的元素都不需要再在nums1中寻找插入位置了
+		if nums2[i] > nums1[m - 1] {
+			break
+		}
+	}
+
+	// 把nums2中剩余未被处理的元素放到nums1的末尾
+	if residueNums2 < n {
+		for k := residueNums2; k < n; k++ {
+			nums1[m] = nums2[k]
+			m++
+		}
+	}
+}
+
+func moveBack(nums []int, start, end int) {
+	for i := end + 1; i > start; i-- {
+		nums[i] = nums[i - 1]
+	}
+}
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
