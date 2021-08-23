@@ -36,3 +36,35 @@ func RemoveDuplicates(nums []int) int {
 
 	return elementsCounter
 }
+
+func RemoveDuplicates2(nums []int) int {
+	elementsCounter := 0
+
+	for i := 0; i < len(nums); i++ {
+		if i == 0 {
+			elementsCounter++
+		} else {
+			if nums[i] != nums[i - 1] {
+				// 若 nums[i] != nums[i - 1] 则说明nums[i]是第1次出现的
+				// 需要放到结果数组中
+				nums[elementsCounter] = nums[i]
+				elementsCounter++
+			}
+		}
+	}
+
+	return elementsCounter
+}
+
+func RemoveDuplicates3(nums []int) int {
+	elementsCounter := 0
+
+	for i := 0; i < len(nums); i++ {
+		if i == 0 || nums[i] != nums[i - 1] {
+			nums[elementsCounter] = nums[i]
+			elementsCounter++
+		}
+	}
+
+	return elementsCounter
+}
