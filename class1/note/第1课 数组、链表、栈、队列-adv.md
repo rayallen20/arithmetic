@@ -859,6 +859,411 @@ func moveZeros(nums []int) {
 
 该算法的时间复杂度为O(2n),即O(n).
 
+## 2. 链表
+
+链表是一个**有序集合**,该集合需要维护元素之间的相对位置,但并不需要在连续的内存空间中维护这些元素.
+
+从这个定义中,可以获知2个关键点:
+
+1. 链表在内存空间的分布是**非连续的**
+2. 不能随机访问链表中的节点
+
+### 2.1 单链表
+
+#### 2.1.1 单链表的定义
+
+链表中的节点只有指向其后一个节点的指针,没有指向其前一个节点的指针.也就是说,遍历链表时,只能访问到某个节点之后的节点,无法访问到某个节点之前的节点.
+
+#### 2.1.2 单链表的实现
+
+##### a. 节点的实现
+
+```go
+package linkedList
+
+type Node struct {
+	value interface{}
+	next *Node
+}
+
+func (n *Node) SetValue(value interface{})  {
+	n.value = value
+}
+
+func (n Node) GetValue() interface{} {
+	return n.value
+}
+
+func (n *Node) SetNext(next *Node) {
+	n.next = next
+}
+
+func (n Node) GetNext() *Node {
+	return n.next
+}
+```
+
+##### b. 单链表的实现
+
+```go
+package linkedList
+
+import (
+	"errors"
+	"fmt"
+)
+
+type LinkedList struct {
+	head *Node
+	len  int
+}
+
+func (l *LinkedList) IsEmpty() bool {
+	return l.head == nil
+}
+
+func (l *LinkedList) Prepend(value interface{}) {
+	node := Node{}
+	node.SetValue(value)
+	if l.head == nil {
+		l.head = &node
+	} else {
+		node.SetNext(l.head)
+		l.head = &node
+	}
+	l.len++
+}
+
+func (l *LinkedList) Lookup() {
+	node := l.head
+
+	for i := 0; i <= l.len - 1; i++ {
+		fmt.Printf("%v\n", node.GetValue())
+		node = node.GetNext()
+	}
+}
+
+func (l *LinkedList) Append(value interface{}) {
+	tailNode := &Node{}
+	tailNode.SetValue(value)
+	// 细节:若LinkedList为空 直接设置Head指针指向待Append的Node即可
+	if l.len == 0 {
+		l.head = tailNode
+	} else {
+		// 主体思路:找到Append前的最后一个Node,将该Node的Next指针指向待Append的Node即可
+		var lastNode *Node
+		now := l.head
+
+		for i := 0; i <= l.len - 1; i++ {
+			if i == l.len - 1 {
+				lastNode = now
+			}
+			now = now.GetNext()
+		}
+		lastNode.SetNext(tailNode)
+	}
+
+	l.len++
+}
+
+func(l *LinkedList) Insert(index int, value interface{}) error {
+	// 细节:判定index是否合法
+	if index < 0 || index > l.len {
+		return errors.New("illegal index")
+	}
+
+	// 细节:index == 0 等价于Prepend操作
+	if index == 0 {
+		l.Prepend(value)
+		return nil
+	}
+
+	// 细节:index == len 等价于Append操作
+	if index == l.len {
+		l.Append(value)
+		return nil
+	}
+
+	// 主体思路:找到index位置前的Node 将待Insert的Node的Next指针设置为和该Node的Next指针相同
+	// 再将该Node的Next指针指向待Insert的Node
+	insertNode := Node{}
+	insertNode.SetValue(value)
+
+	prevNode := l.head
+
+	for i := 0; i < index - 1; i++ {
+		prevNode = prevNode.GetNext()
+	}
+	insertNode.SetNext(prevNode.GetNext())
+	prevNode.SetNext(&insertNode)
+	l.len++
+
+	return nil
+}
+
+func (l *LinkedList) Delete(index int) error {
+	// 细节:判定l是否是一个空Linked List
+	if l.head == nil {
+		return errors.New("can't delete element in a nil linked list")
+	}
+
+	// 细节:判定index的是否合法
+	if index < 0 || index > l.len - 1 {
+		return errors.New("illegal index")
+	} else if index == 0 {
+		// 细节: index == 0 置l.Head = l.Head.GetNext()即可
+		l.head = l.head.GetNext()
+		l.len--
+	} else {
+		// 主体思路:找到index位置前的Node 将该Node的Next指针指向待删除Node的Next指针
+		prevNode := l.head
+		for i := 0; i < index - 1; i++ {
+			prevNode = prevNode.GetNext()
+		}
+		prevNode.SetNext(prevNode.GetNext().GetNext())
+		l.len--
+	}
+
+	return nil
+}
+```
+
+### 2.2 双链表
+
+#### 2.2.1 双链表的定义
+
+链表中的节点不仅有指向其后一个节点的指针,还有指向其前一个节点的指针.也就是说,遍历链表时,不仅能够访问到某个节点之后的节点,还能够访问到该节点之前的节点.
+
+#### 2.2.2 双链表的实现
+
+##### a. 节点的实现
+
+```go
+package doubleLinkedList
+
+type Node struct {
+	value interface{}
+	next *Node
+	prev *Node
+}
+
+func (n *Node) SetValue(value interface{}) {
+	n.value = value
+}
+
+func (n *Node) GetValue() interface{} {
+	return n.value
+}
+
+func (n *Node) SetNext(next *Node) {
+	n.next = next
+}
+
+func (n *Node) GetNext() *Node {
+	return n.next
+}
+
+func (n *Node) SetPrev(prev *Node) {
+	n.prev = prev
+}
+
+func (n *Node) GetPrev() *Node {
+	return n.prev
+}
+```
+
+##### b. 双链表的实现
+
+```go
+package doubleLinkedList
+
+import (
+	"errors"
+	"fmt"
+)
+
+type DoubleLinkedList struct {
+	head *Node
+	len  int
+	tail *Node
+}
+
+func (d *DoubleLinkedList) Prepend(value interface{}) {
+	node := Node{}
+	node.SetValue(value)
+	// 细节:DoubleLinkedList为空
+	if d.head == nil {
+		d.tail = &node
+	} else {
+		// 主体思路:
+		// step1. 置Prepend前 DoubleLinkedList头部Node的Prev指针 指向待Prepend的节点
+		// step2. 置待Prepend节点的Next指针为DoubleLinkedList的head指针
+		// step3. 将DoubleLinkedList的head指针指向待Prepend的节点
+		d.head.SetPrev(&node)
+		node.SetNext(d.head)
+	}
+
+	d.head = &node
+	d.len++
+}
+
+func (d *DoubleLinkedList) LookupFromHead() {
+	node := d.head
+
+	for i := 0; i <= d.len - 1; i++ {
+		fmt.Printf("%v\n", node.GetValue())
+		node = node.GetNext()
+	}
+}
+
+func (d *DoubleLinkedList) LookUpFromTail() {
+	node := d.tail
+	for i := d.len - 1; i >= 0; i-- {
+		fmt.Printf("%v\n", node.GetValue())
+		node = node.GetPrev()
+	}
+}
+
+func (d *DoubleLinkedList) Append(value interface{}) {
+	node := Node{}
+	node.SetValue(value)
+
+	// 细节:DoubleLinkedList为空
+	if d.head == nil {
+		d.head = &node
+	} else {
+		// 主体思路:
+		// step1. 置Append前 DoubleLinkedList尾部Node的Next指针 指向待Append的节点
+		// step2. 置待Append节点的Prev指针为DoubleLinkedList的tail指针
+		// step3. 将DoubleLinkedList的tail指针指向待Append的节点
+		d.tail.SetNext(&node)
+		node.SetPrev(d.tail)
+	}
+
+	d.tail = &node
+	d.len++
+}
+
+func (d *DoubleLinkedList) Insert(index int, value interface{}) (err error) {
+
+	// 细节:判定index是否合法
+	if index < 0 || index > d.len {
+		return errors.New("illegal index")
+	}
+
+	// 细节:index == 0 等价于 Prepend
+	if index == 0 {
+		d.Prepend(value)
+		return nil
+	}
+
+	// 细节:index == d.len 等价于Append
+	if index == d.len {
+		d.Append(value)
+		return nil
+	}
+
+	// 主体思路:
+	target, err := d.find(index)
+	if err != nil {
+		return err
+	}
+
+	beInsertedNode := &Node{value: value}
+	d.insert(beInsertedNode, target)
+
+	return nil
+}
+
+func (d *DoubleLinkedList) find(index int) (target *Node, err error) {
+	if index < 0 || index >= d.len {
+		return nil, errors.New("illegal index")
+	}
+
+	// 细节:若index <= d.len / 2 则从前向后遍历 否则从后向前遍历
+	if index <= d.len / 2 {
+		target = d.head
+		for i := 0; i < index; i++ {
+			target = target.GetNext()
+		}
+	} else {
+		target = d.tail
+		for i := d.len - 1; i > index; i-- {
+			target = target.GetPrev()
+		}
+	}
+
+	return target, nil
+}
+
+func (d *DoubleLinkedList) insert(beInsertedNode, target *Node) {
+	// step1. 寻找待插入索引处的节点(target)
+	// step2. 待插入节点的Prev指针指向target.Prev
+	// step3. target.Prev的Next指针指向待插入节点
+	// step4. 待插入节点的Next指针指向target
+	// step5. target的Prev指针指向待插入节点
+	beInsertedNode.SetPrev(target.GetPrev())
+	target.GetPrev().SetNext(beInsertedNode)
+	beInsertedNode.SetNext(target)
+	target.SetPrev(beInsertedNode)
+	d.len++
+}
+
+func (d *DoubleLinkedList) Delete(index int) (err error) {
+	// 细节:判定index是否合法
+	if index < 0 || index >= d.len {
+		return errors.New("illegal index")
+	}
+
+	// 细节:删除头部
+	if index == 0 {
+		d.deleteHead()
+		return nil
+	}
+
+	// 细节:删除尾部
+	if index == d.len - 1 {
+		d.deleteTail()
+		return nil
+	}
+
+	// 主体思路
+	target, err := d.find(index)
+	if err != nil {
+		return err
+	}
+
+	d.deleteInternal(target)
+	return nil
+}
+
+func (d *DoubleLinkedList) deleteHead() {
+	d.head = d.head.GetNext()
+	if d.head == nil {
+		d.tail = nil
+	} else {
+		d.head.SetPrev(nil)
+	}
+	d.len--
+}
+
+func (d *DoubleLinkedList) deleteInternal(target *Node) {
+	target.GetPrev().SetNext(target.GetNext())
+	target.GetNext().SetPrev(target.GetPrev())
+	d.len--
+}
+
+func (d *DoubleLinkedList) deleteTail() {
+	d.tail = d.tail.GetPrev()
+	if d.tail == nil {
+		d.head = nil
+	} else {
+		d.tail.SetNext(nil)
+	}
+	d.len--
+}
+```
+
 
 	
 
