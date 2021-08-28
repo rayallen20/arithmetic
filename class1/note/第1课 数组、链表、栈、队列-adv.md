@@ -1264,9 +1264,133 @@ func (d *DoubleLinkedList) deleteTail() {
 }
 ```
 
+### 2.3 相关习题
 
+#### 2.3.1 反转链表
+
+[反转链表](https://leetcode-cn.com/problems/reverse-linked-list/)
+
+##### a. 题目要求
+
+给你单链表的头结点`head`,请你反转链表,并返回反转后的链表.
+
+示例1:
+
+![反转链表-示例1](./image/反转链表-示例1.jpeg)
+
+```
+
+输入: head = [1, 2, 3, 4, 5]
+
+输出: [5, 4, 3, 2, 1]
+
+```
+
+示例2:
+
+![反转链表-示例2](./image/反转链表-示例2.jpeg)
+
+```
+
+输入: head = [1, 2]
+
+输出: [2, 1]
+
+```
+
+节点的数据结构如下:
+
+```go
+type ListNode struct {
+	Val int
+	Next *ListNode
+}
+```
+
+##### b. 审题
 	
+在介绍链表的时候我们说过,链表是**不支持随机访问**的.而且本题中给定的条件是单链表,也就表示指向当前节点时,是无法找到当前节点的前一个节点的.而反转链表又必须能够访问到上一个节点,因此需要使用一个**能够记录节点相对顺序的数据结构**.
 
+##### c. 根据审题结果,寻找合适的数据结构
+
+很明显,**数组就是一种能够记录节点(元素)相对顺序的数据结构**
+
+##### d. 实现思路
+
+step1. 将链表中所有节点按顺序存入一个数组中
+
+step2. 从后向前遍历数组,设置每个元素的`Next`指针指向前一个元素
+
+##### e. 实现
+
+```go
+package lc206_reverseLinkedList
+
+func reverseLinkedList(head *ListNode) *ListNode {
+	now := head
+	var arr []*ListNode
+	
+	// 将链表中的所有节点按顺序存入数组
+	for now != nil {
+		arr = append(arr, now)
+		now = now.Next
+	}
+
+	if len(arr) == 0 {
+		return nil
+	}
+
+	// 设置数组中所有元素的Next指针指向前一个元素
+	for i := len(arr) - 1; i >= 0; i-- {
+		if i == 0 {
+			arr[i].Next = nil
+		} else {
+			arr[i].Next = arr[i - 1]
+		}
+	}
+
+	return arr[len(arr) - 1]
+}
+```
+
+##### f. 改进-只遍历1次的算法
+
+遍历链表是一个O(n)的操作,遍历数组又是一次O(n)的操作.所以这个算法的时间复杂度为O(2n),即O(n).而这道题是存在只遍历1次的算法的.虽然只遍历1次其时间复杂度也还是O(n),但其空间复杂度降低了,因为不再需要一个额外的数组了.
+
+改进思路:对于链表中的所有节点,只需要做3步操作即可
+
+1. 暂存后一个节点.因为如果不暂存就修改`Next`指针,则后续所有的节点就都找不到了.
+2. 置当前节点的`Next`指针指向前一个节点
+3. 置当前节点为前一个节点
+
+![反转链表](./image/206-反转链表.jpg)
+
+改进后的实现:
+
+```go
+package lc206_reverseLinkedList
+
+func reverseLinkedList(head *ListNode) *ListNode {
+	now := head
+	var prev *ListNode
+
+	for now != nil {
+		// 暂存下一个
+		next := now.Next
+
+		// 置Next指针指向上一个
+		now.Next = prev
+
+		// 置自己为上一个
+		prev = now
+
+		// 处理下一个节点
+		now = next
+	}
+
+	return prev
+}
+```
 
 
 
